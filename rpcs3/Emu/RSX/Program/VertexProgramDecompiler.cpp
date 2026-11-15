@@ -671,7 +671,12 @@ std::string VertexProgramDecompiler::Decompile()
 		case RSX_SCA_OPCODE_MOV: SetDSTSca("$s"); break;
 		case RSX_SCA_OPCODE_RCP: SetDSTSca("(1.0 / $s)"); break;
 		case RSX_SCA_OPCODE_RCC: SetDSTSca("clamp(1.0 / $s, 5.42101e-20, 1.884467e19)"); break;
-		case RSX_SCA_OPCODE_RSQ: SetDSTSca("1. / sqrt(" + NotZeroPositive("$s.x") +").xxxx"); break;
+		case RSX_SCA_OPCODE_RSQ:
+			// RSX hardware: RSQ(x) = 1/sqrt(|x|), and RSQ(0) = +inf (RCP(+inf) = 0).
+			// The old max(x, 1e-10) clamp turned RSQ(0) into ~1e5, which broke shaders that
+			// branch on 1/RSQ(0) (e.g. NHL Legacy's particle VS: goal light lamp).
+			SetDSTSca("((abs($s.x) == 0.0) ? uintBitsToFloat(0x7F800000u) : inversesqrt(abs($s.x))).xxxx");
+			break;
 		case RSX_SCA_OPCODE_EXP: SetDSTSca("exp($s)"); break;
 		case RSX_SCA_OPCODE_LOG: SetDSTSca("log($s)"); break;
 		case RSX_SCA_OPCODE_LIT:
