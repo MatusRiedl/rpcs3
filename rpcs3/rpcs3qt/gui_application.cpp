@@ -107,7 +107,14 @@ int gui_application::exec()
 		func();
 	};
 
-	if (!rpcs3::is_release_build() && !rpcs3::is_local_build())
+	// Started with --no-gui (as Blueline does), there is no window to ask in: the warning goes to the log only.
+	// RPCS3's own window still asks.
+	if (!rpcs3::is_release_build() && !rpcs3::is_local_build() && !m_show_gui)
+	{
+		const std::string_view branch_name = rpcs3::get_full_branch();
+		gui_log.warning("Experimental Build Warning! Build origin: %s", branch_name);
+	}
+	else if (!rpcs3::is_release_build() && !rpcs3::is_local_build())
 	{
 		steps->push_back([this]()
 		{
@@ -217,7 +224,7 @@ int gui_application::exec()
 			msg->open();
 		});
 	}
-	if (m_gui_settings->GetValue(gui::ib_show_welcome).toBool())
+	if (m_show_gui && m_gui_settings->GetValue(gui::ib_show_welcome).toBool())
 	{
 		steps->push_back([this]()
 		{
